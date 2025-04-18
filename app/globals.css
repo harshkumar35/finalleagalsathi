@@ -1,0 +1,148 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    /* Changed from sky blue to navy blue */
+    --primary: 220 70% 30%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Adjusted secondary color to match navy theme */
+    --secondary: 220 70% 50%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    /* Adjusted accent to match navy theme */
+    --accent: 220 70% 94%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 220 70% 30%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Changed from sky blue to navy blue */
+    --primary: 220 70% 30%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Adjusted secondary color to match navy theme */
+    --secondary: 220 70% 50%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    /* Adjusted accent to match navy theme */
+    --accent: 220 70% 20%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 220 70% 30%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Animated text classes */
+.animated-text {
+  background: linear-gradient(to right, #1a365d, #2a4a7f, #3c64a6, #2a4a7f, #1a365d);
+  background-size: 200% auto;
+  color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: shine 3s linear infinite;
+}
+
+.animated-text-subtle {
+  background: linear-gradient(to right, #0f2a4a, #1a365d, #2a4a7f, #1a365d, #0f2a4a);
+  background-size: 200% auto;
+  color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: shine 4s linear infinite;
+}
+
+@keyframes shine {
+  to {
+    background-position: 200% center;
+  }
+}
+
+/* Glass effect */
+.glass {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.glass-dark {
+  background: rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@layer components {
+  .animate-in-view {
+    @apply opacity-0 transition-all duration-700 ease-in-out;
+  }
+
+  .animate-in-view.animate-fade-in {
+    @apply opacity-100;
+  }
+
+  .animate-in-view.animate-slide-up {
+    @apply translate-y-0 opacity-100;
+  }
+
+  .animate-in-view.animate-slide-down {
+    @apply -translate-y-0 opacity-100;
+  }
+
+  .animate-in-view.animate-slide-left {
+    @apply translate-x-0 opacity-100;
+  }
+
+  .animate-in-view.animate-slide-right {
+    @apply -translate-x-0 opacity-100;
+  }
+}

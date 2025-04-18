@@ -1,0 +1,351 @@
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+
+export interface Database {
+  public: {
+    Tables: {
+      legalsathi_users: {
+        Row: {
+          id: string
+          email: string
+          password: string // Note: In production, passwords should not be directly accessible
+          full_name: string
+          role: "client" | "lawyer" | "admin"
+          phone: string | null
+          profile_image: string | null
+          is_verified: boolean
+          is_active: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          email: string
+          password: string
+          full_name: string
+          role: "client" | "lawyer" | "admin"
+          phone?: string | null
+          profile_image?: string | null
+          is_verified?: boolean
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          email?: string
+          password?: string
+          full_name?: string
+          role?: "client" | "lawyer" | "admin"
+          phone?: string | null
+          profile_image?: string | null
+          is_verified?: boolean
+          is_active?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      lawyer_profiles: {
+        Row: {
+          id: string
+          user_id: string
+          bar_council_id: string
+          specialization: string
+          years_of_experience: number
+          hourly_rate: number | null
+          bio: string | null
+          education: string | null
+          location: string | null
+          availability: string | null
+          languages: string[] | null
+          average_rating: number
+          total_cases: number
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          bar_council_id: string
+          specialization: string
+          years_of_experience: number
+          hourly_rate?: number | null
+          bio?: string | null
+          education?: string | null
+          location?: string | null
+          availability?: string | null
+          languages?: string[] | null
+          average_rating?: number
+          total_cases?: number
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          bar_council_id?: string
+          specialization?: string
+          years_of_experience?: number
+          hourly_rate?: number | null
+          bio?: string | null
+          education?: string | null
+          location?: string | null
+          availability?: string | null
+          languages?: string[] | null
+          average_rating?: number
+          total_cases?: number
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      client_profiles: {
+        Row: {
+          id: string
+          user_id: string
+          address: string | null
+          city: string | null
+          state: string | null
+          country: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          address?: string | null
+          city?: string | null
+          state?: string | null
+          country?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          address?: string | null
+          city?: string | null
+          state?: string | null
+          country?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      legal_cases: {
+        Row: {
+          id: string
+          title: string
+          description: string
+          case_type: string
+          client_id: string
+          lawyer_id: string | null
+          status: "open" | "in_progress" | "closed" | "resolved"
+          budget: number | null
+          deadline: string | null
+          location: string | null
+          is_confidential: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description: string
+          case_type: string
+          client_id: string
+          lawyer_id?: string | null
+          status?: "open" | "in_progress" | "closed" | "resolved"
+          budget?: number | null
+          deadline?: string | null
+          location?: string | null
+          is_confidential?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string
+          case_type?: string
+          client_id?: string
+          lawyer_id?: string | null
+          status?: "open" | "in_progress" | "closed" | "resolved"
+          budget?: number | null
+          deadline?: string | null
+          location?: string | null
+          is_confidential?: boolean
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      legalsathi_messages: {
+        Row: {
+          id: string
+          sender_id: string
+          receiver_id: string
+          case_id: string | null
+          content: string
+          is_read: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          sender_id: string
+          receiver_id: string
+          case_id?: string | null
+          content: string
+          is_read?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          sender_id?: string
+          receiver_id?: string
+          case_id?: string | null
+          content?: string
+          is_read?: boolean
+          created_at?: string
+        }
+      }
+      appointments: {
+        Row: {
+          id: string
+          client_id: string
+          lawyer_id: string
+          case_id: string | null
+          title: string
+          description: string | null
+          appointment_date: string
+          duration: number
+          location: string | null
+          is_virtual: boolean
+          meeting_link: string | null
+          status: "scheduled" | "completed" | "cancelled" | "rescheduled"
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          lawyer_id: string
+          case_id?: string | null
+          title: string
+          description?: string | null
+          appointment_date: string
+          duration: number
+          location?: string | null
+          is_virtual?: boolean
+          meeting_link?: string | null
+          status?: "scheduled" | "completed" | "cancelled" | "rescheduled"
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          lawyer_id?: string
+          case_id?: string | null
+          title?: string
+          description?: string | null
+          appointment_date?: string
+          duration?: number
+          location?: string | null
+          is_virtual?: boolean
+          meeting_link?: string | null
+          status?: "scheduled" | "completed" | "cancelled" | "rescheduled"
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      reviews: {
+        Row: {
+          id: string
+          client_id: string
+          lawyer_id: string
+          case_id: string | null
+          rating: number
+          review_text: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          client_id: string
+          lawyer_id: string
+          case_id?: string | null
+          rating: number
+          review_text?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          client_id?: string
+          lawyer_id?: string
+          case_id?: string | null
+          rating?: number
+          review_text?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+      blog_posts: {
+        Row: {
+          id: string
+          author_id: string
+          title: string
+          content: string
+          excerpt: string | null
+          featured_image: string | null
+          category: string
+          tags: string[] | null
+          is_published: boolean
+          view_count: number
+          published_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          author_id: string
+          title: string
+          content: string
+          excerpt?: string | null
+          featured_image?: string | null
+          category: string
+          tags?: string[] | null
+          is_published?: boolean
+          view_count?: number
+          published_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          author_id?: string
+          title?: string
+          content?: string
+          excerpt?: string | null
+          featured_image?: string | null
+          category?: string
+          tags?: string[] | null
+          is_published?: boolean
+          view_count?: number
+          published_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      user_role: "client" | "lawyer" | "admin"
+      case_status: "open" | "in_progress" | "closed" | "resolved"
+      appointment_status: "scheduled" | "completed" | "cancelled" | "rescheduled"
+      payment_status: "pending" | "completed" | "failed" | "refunded"
+    }
+  }
+}
