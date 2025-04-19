@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { gsap } from "gsap"
 import { ChevronDown, Menu, X } from "lucide-react"
 import { AnimatedButton } from "@/components/ui/animated-button"
-import { createClient } from "@/lib/supabase/client"
+import { useAuth } from "@/lib/auth/auth-context"
 
 type NavItem = {
   label: string
@@ -39,34 +39,8 @@ export function AnimatedNavbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const [scrolled, setScrolled] = useState(false)
-  const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
   const navRef = useRef<HTMLDivElement>(null)
-  const supabase = createClient()
-
-  useEffect(() => {
-    // Check if user is logged in
-    const checkUser = async () => {
-      try {
-        const { data } = await supabase.auth.getSession()
-        if (data.session) {
-          const { data: userData } = await supabase
-            .from("legalsathi_users")
-            .select("*")
-            .eq("id", data.session.user.id)
-            .single()
-
-          setUser(userData)
-        }
-      } catch (error) {
-        console.error("Error checking user:", error)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    checkUser()
-  }, [supabase])
+  const { user, loading, logout } = useAuth()
 
   useEffect(() => {
     if (navRef.current) {
@@ -107,8 +81,7 @@ export function AnimatedNavbar() {
 
   const handleLogout = async () => {
     try {
-      await supabase.auth.signOut()
-      setUser(null)
+      await logout()
       router.push("/")
     } catch (error) {
       console.error("Error logging out:", error)

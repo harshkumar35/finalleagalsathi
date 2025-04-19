@@ -1,12 +1,7 @@
 import { NextResponse } from "next/server"
-import { createClient } from "redis"
-import bcrypt from "bcryptjs"
-import jwt from "jsonwebtoken"
 import { cookies } from "next/headers"
-
-// This is a mock implementation. In a real app, you would use proper environment variables
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379"
+import bcrypt from "bcryptjs"
+import { createClient } from "@/lib/supabase/server"
 
 export async function POST(request: Request) {
   try {
@@ -17,60 +12,54 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Email and password are required" }, { status: 400 })
     }
 
-    // Connect to Redis
-    const client = createClient({ url: REDIS_URL })
-    await client.connect()
+    // Initialize Supabase client
+    const supabase = createClient()
 
     // Get user by email
-    const userRef = await client.json.get(`user:email:${email}`)
-    if (!userRef) {
-      await client.disconnect()
+    const { data: userData, error: userError } = await supabase
+      .from("legalsathi_users")
+      .select("*")
+      .eq("email", email)
+      .single()
+
+    if (userError) {
+      console.error("Error fetching user:", userError)
       return NextResponse.json({ message: "Invalid credentials" }, { status: 401 })
     }
 
-    // Get full user data
-    const user = await client.json.get(`user:${(userRef as any).id}`)
-    if (!user) {
-      await client.disconnect()
-      return NextResponse.json({ message: "User not found" }, { status: 404 })
-    }
-
-    // Check if lawyer is verified
-    if ((user as any).role === "lawyer" && !(user as any).isVerified) {
-      await client.disconnect()
-      return NextResponse.json(
-        { message: "Your account is pending verification. Please wait for admin approval." },
-        { status: 403 },
-      )
+    if (!userData) {
+      return NextResponse.json({ message: "Invalid credentials" }, { status: 401 })
     }
 
     // Verify password
-    const isMatch = await bcrypt.compare(password, (user as any).password)
+    const isMatch = await bcrypt.compare(password, userData.password)
     if (!isMatch) {
-      await client.disconnect()
       return NextResponse.json({ message: "Invalid credentials" }, { status: 401 })
     }
 
-    // Disconnect from Redis
-    await client.disconnect()
-
     // Create sanitized user object (without password)
     const sanitizedUser = {
-      id: (user as any).id,
-      fullName: (user as any).fullName,
-      email: (user as any).email,
-      role: (user as any).role,
+      id: userData.id,
+      fullName: userData.full_name,
+      email: userData.email,
+      role: userData.role,
     }
 
-    // Generate JWT token
-    const token = jwt.sign({ id: sanitizedUser.id, email: sanitizedUser.email, role: sanitizedUser.role }, JWT_SECRET, {
-      expiresIn: "1d",
+    // Set session cookie
+    const { data: sessionData, error: sessionError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     })
 
-    // Set cookie
+    if (sessionError) {
+      console.error("Session error:", sessionError)
+      return NextResponse.json({ message: "Authentication failed" }, { status: 500 })
+    }
+
+    // Set cookie with session token
     cookies().set({
-      name: "auth_token",
-      value: token,
+      name: "supabase-auth-token",
+      value: sessionData.session?.access_token || "",
       httpOnly: true,
       path: "/",
       secure: process.env.NODE_ENV === "production",
@@ -80,7 +69,6 @@ export async function POST(request: Request) {
     return NextResponse.json({
       message: "Login successful",
       user: sanitizedUser,
-      token,
     })
   } catch (error) {
     console.error("Error logging in:", error)

@@ -1,292 +1,230 @@
 "use client"
 
-import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { motion } from "framer-motion"
+import { z } from "zod"
+import { useForm } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { AnimatedButton } from "@/components/ui/animated-button"
-import { MotionWrapper } from "@/components/animations/motion-wrapper"
+import { Button } from "@/components/ui/button"
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form"
+import { Eye, EyeOff, User, Mail, Lock } from "lucide-react"
 
-enum RegistrationStep {
-  DETAILS = 0,
-  OTP_VERIFICATION = 1,
+// Form schema
+const formSchema = z
+  .object({
+    fullName: z.string().min(3, "Full name must be at least 3 characters"),
+    email: z.string().email("Please enter a valid email address"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  })
+
+type FormValues = z.infer<typeof formSchema>
+
+interface ClientRegistrationFormProps {
+  setError: (error: string) => void
 }
 
-export function ClientRegistrationForm() {
-  const router = useRouter()
-  const [step, setStep] = useState<RegistrationStep>(RegistrationStep.DETAILS)
+const ClientRegistrationForm = ({ setError }: ClientRegistrationFormProps) => {
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
+  const router = useRouter()
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+    },
   })
-  const [otp, setOtp] = useState("")
-  const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-
-    // Clear error when user types
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev }
-        delete newErrors[name]
-        return newErrors
-      })
-    }
-  }
-
-  const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setOtp(e.target.value)
-
-    // Clear error when user types
-    if (errors.otp) {
-      setErrors((prev) => {
-        const newErrors = { ...prev }
-        delete newErrors.otp
-        return newErrors
-      })
-    }
-  }
-
-  const validateForm = () => {
-    const newErrors: Record<string, string> = {}
-
-    if (!formData.fullName.trim()) {
-      newErrors.fullName = "Full name is required"
-    }
-
-    if (!formData.email.trim()) {
-      newErrors.email = "Email is required"
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Email is invalid"
-    }
-
-    if (!formData.password) {
-      newErrors.password = "Password is required"
-    } else if (formData.password.length < 8) {
-      newErrors.password = "Password must be at least 8 characters"
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = "Passwords do not match"
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const validateOtp = () => {
-    const newErrors: Record<string, string> = {}
-
-    if (!otp.trim()) {
-      newErrors.otp = "OTP is required"
-    } else if (otp.length !== 6 || !/^\d+$/.test(otp)) {
-      newErrors.otp = "OTP must be 6 digits"
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
-
-  const handleSendOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    if (!validateForm()) {
-      return
-    }
-
+  const onSubmit = async (data: FormValues) => {
     setIsLoading(true)
+    setError("")
 
     try {
-      // For preview/demo purposes, use a timeout instead of actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const response = await fetch("/api/auth/signup-client", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          fullName: data.fullName,
+          email: data.email,
+          password: data.password,
+          role: "client",
+        }),
+      })
 
-      // Move to OTP verification step
-      setStep(RegistrationStep.OTP_VERIFICATION)
-    } catch (error) {
-      console.error("Error sending OTP:", error)
-      setErrors((prev) => ({
-        ...prev,
-        form: error instanceof Error ? error.message : "Failed to send OTP. Please try again.",
-      }))
-    } finally {
-      setIsLoading(false)
-    }
-  }
+      const responseData = await response.json()
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault()
+      if (!response.ok) {
+        throw new Error(responseData.message || "Registration failed")
+      }
 
-    if (!validateOtp()) {
-      return
-    }
-
-    setIsLoading(true)
-
-    try {
-      // For preview/demo purposes, use a timeout instead of actual API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      // Simulate API call for demo
-      // In a real app, you would verify the OTP and create the user account
-
-      // Redirect to login with success message
+      // Redirect to login page
       router.push("/login?registered=true")
-    } catch (error) {
-      console.error("Error verifying OTP:", error)
-      setErrors((prev) => ({
-        ...prev,
-        otp: "Invalid OTP. Please try again.",
-      }))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred during registration")
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+      },
+    },
+  }
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: {
+      y: 0,
+      opacity: 1,
+      transition: { type: "spring", stiffness: 100 },
+    },
   }
 
   return (
-    <>
-      {step === RegistrationStep.DETAILS && (
-        <MotionWrapper>
-          <form onSubmit={handleSendOtp} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="fullName">Full Name</Label>
-              <Input
-                id="fullName"
+    <motion.div variants={containerVariants} initial="hidden" animate="visible">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <div className="space-y-4">
+            <motion.div variants={itemVariants}>
+              <FormField
+                control={form.control}
                 name="fullName"
-                placeholder="John Doe"
-                value={formData.fullName}
-                onChange={handleChange}
-                disabled={isLoading}
-                className="border-blue-200 focus:border-blue-500"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Full Name</FormLabel>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <FormControl>
+                        <Input placeholder="John Doe" className="pl-10 bg-white/50" {...field} />
+                      </FormControl>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              {errors.fullName && <p className="text-sm text-red-500">{errors.fullName}</p>}
-            </div>
+            </motion.div>
 
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
+            <motion.div variants={itemVariants}>
+              <FormField
+                control={form.control}
                 name="email"
-                type="email"
-                placeholder="john@example.com"
-                value={formData.email}
-                onChange={handleChange}
-                disabled={isLoading}
-                className="border-blue-200 focus:border-blue-500"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <FormControl>
+                        <Input type="email" placeholder="name@example.com" className="pl-10 bg-white/50" {...field} />
+                      </FormControl>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              {errors.email && <p className="text-sm text-red-500">{errors.email}</p>}
-            </div>
+            </motion.div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
+            <motion.div variants={itemVariants}>
+              <FormField
+                control={form.control}
                 name="password"
-                type="password"
-                value={formData.password}
-                onChange={handleChange}
-                disabled={isLoading}
-                className="border-blue-200 focus:border-blue-500"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <FormControl>
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          className="pl-10 bg-white/50"
+                          {...field}
+                        />
+                      </FormControl>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              {errors.password && <p className="text-sm text-red-500">{errors.password}</p>}
-            </div>
+            </motion.div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
+            <motion.div variants={itemVariants}>
+              <FormField
+                control={form.control}
                 name="confirmPassword"
-                type="password"
-                value={formData.confirmPassword}
-                onChange={handleChange}
-                disabled={isLoading}
-                className="border-blue-200 focus:border-blue-500"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm Password</FormLabel>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                      <FormControl>
+                        <Input
+                          type={showConfirmPassword ? "text" : "password"}
+                          placeholder="••••••••"
+                          className="pl-10 bg-white/50"
+                          {...field}
+                        />
+                      </FormControl>
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        className="absolute right-3 top-3 text-gray-400 hover:text-gray-600"
+                      >
+                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-              {errors.confirmPassword && <p className="text-sm text-red-500">{errors.confirmPassword}</p>}
-            </div>
+            </motion.div>
+          </div>
 
-            {errors.form && (
-              <div className="bg-red-50 p-3 rounded-md">
-                <p className="text-sm text-red-500">{errors.form}</p>
-              </div>
-            )}
-
-            <AnimatedButton
+          <motion.div variants={itemVariants}>
+            <Button
               type="submit"
-              className="w-full bg-blue-500 hover:bg-blue-600"
-              isLoading={isLoading}
-              loadingText="Sending OTP..."
+              className="w-full bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600 text-white py-2 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+              disabled={isLoading}
             >
-              Continue
-            </AnimatedButton>
-          </form>
-        </MotionWrapper>
-      )}
-
-      {step === RegistrationStep.OTP_VERIFICATION && (
-        <MotionWrapper>
-          <form onSubmit={handleVerifyOtp} className="space-y-4">
-            <div className="text-center mb-4">
-              <p className="text-sm text-slate-600">
-                We've sent a verification code to <span className="font-medium">{formData.email}</span>
-              </p>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="otp">Enter 6-digit OTP</Label>
-              <Input
-                id="otp"
-                name="otp"
-                placeholder="123456"
-                value={otp}
-                onChange={handleOtpChange}
-                disabled={isLoading}
-                maxLength={6}
-                className="text-center text-lg tracking-widest border-blue-200 focus:border-blue-500"
-              />
-              {errors.otp && <p className="text-sm text-red-500">{errors.otp}</p>}
-            </div>
-
-            <div className="flex justify-between items-center">
-              <button
-                type="button"
-                onClick={() => setStep(RegistrationStep.DETAILS)}
-                className="text-sm text-blue-600 hover:underline"
-                disabled={isLoading}
-              >
-                Back
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  // In a real app, you would resend the OTP
-                  alert("OTP resent successfully!")
-                }}
-                className="text-sm text-blue-600 hover:underline"
-                disabled={isLoading}
-              >
-                Resend OTP
-              </button>
-            </div>
-
-            <AnimatedButton
-              type="submit"
-              className="w-full bg-blue-500 hover:bg-blue-600"
-              isLoading={isLoading}
-              loadingText="Verifying..."
-            >
-              Create Account
-            </AnimatedButton>
-          </form>
-        </MotionWrapper>
-      )}
-    </>
+              {isLoading ? (
+                <div className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Registering...
+                </div>
+              ) : (
+                "Register as Client"
+              )}
+            </Button>
+          </motion.div>
+        </form>
+      </Form>
+    </motion.div>
   )
 }
+
+export default ClientRegistrationForm

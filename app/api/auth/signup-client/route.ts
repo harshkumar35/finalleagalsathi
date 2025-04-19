@@ -1,30 +1,32 @@
 import { NextResponse } from "next/server"
-import { createClient } from "redis"
-import { v4 as uuidv4 } from "uuid"
 import bcrypt from "bcryptjs"
-import jwt from "jsonwebtoken"
-
-// This is a mock implementation. In a real app, you would use proper environment variables
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379"
+import { createClient } from "@/lib/supabase/server"
 
 export async function POST(request: Request) {
   try {
-    const { fullName, email, password, role } = await request.json()
+    const { fullName, email, password, phone, address, city, state } = await request.json()
 
     // Validate input
-    if (!fullName || !email || !password || role !== "client") {
+    if (!fullName || !email || !password) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 })
     }
 
-    // Connect to Redis
-    const client = createClient({ url: REDIS_URL })
-    await client.connect()
+    // Initialize Supabase client
+    const supabase = createClient()
 
     // Check if user already exists
-    const existingUser = await client.json.get(`user:email:${email}`)
+    const { data: existingUser, error: checkError } = await supabase
+      .from("legalsathi_users")
+      .select("id")
+      .eq("email", email)
+      .maybeSingle()
+
+    if (checkError) {
+      console.error("Error checking existing user:", checkError)
+      return NextResponse.json({ message: "Error checking user existence" }, { status: 500 })
+    }
+
     if (existingUser) {
-      await client.disconnect()
       return NextResponse.json({ message: "User with this email already exists" }, { status: 409 })
     }
 
@@ -32,28 +34,60 @@ export async function POST(request: Request) {
     const salt = await bcrypt.genSalt(10)
     const hashedPassword = await bcrypt.hash(password, salt)
 
-    // Create user object
-    const userId = uuidv4()
-    const user = {
-      id: userId,
-      fullName,
+    // Create user with Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signUp({
       email,
-      password: hashedPassword,
-      role: "client",
-      createdAt: new Date().toISOString(),
+      password,
+      options: {
+        data: {
+          full_name: fullName,
+          role: "client",
+        },
+      },
+    })
+
+    if (authError) {
+      console.error("Auth error:", authError)
+      return NextResponse.json({ message: authError.message }, { status: 500 })
     }
 
-    // Store user in Redis
-    await client.json.set(`user:${userId}`, "$", user)
-    await client.json.set(`user:email:${email}`, "$", { id: userId })
+    if (!authData.user) {
+      return NextResponse.json({ message: "Failed to create user" }, { status: 500 })
+    }
 
-    // Disconnect from Redis
-    await client.disconnect()
+    // Insert user into legalsathi_users table
+    const { error: userError } = await supabase.from("legalsathi_users").insert({
+      id: authData.user.id,
+      email,
+      password: hashedPassword,
+      full_name: fullName,
+      role: "client",
+      is_verified: true,
+      is_active: true,
+    })
 
-    // Generate JWT token (not returning it for registration)
-    const token = jwt.sign({ id: userId, email, role: "client" }, JWT_SECRET, { expiresIn: "1d" })
+    if (userError) {
+      console.error("Error creating user:", userError)
+      return NextResponse.json({ message: "Failed to create user profile" }, { status: 500 })
+    }
 
-    return NextResponse.json({ message: "User registered successfully", userId }, { status: 201 })
+    // Create client profile
+    const { error: profileError } = await supabase.from("client_profiles").insert({
+      user_id: authData.user.id,
+      phone: phone || null,
+      address: address || null,
+      city: city || null,
+      state: state || null,
+    })
+
+    if (profileError) {
+      console.error("Error creating client profile:", profileError)
+      // We should delete the user if profile creation fails
+      await supabase.from("legalsathi_users").delete().eq("id", authData.user.id)
+      return NextResponse.json({ message: "Failed to create client profile" }, { status: 500 })
+    }
+
+    return NextResponse.json({ message: "User registered successfully", userId: authData.user.id }, { status: 201 })
   } catch (error) {
     console.error("Error registering user:", error)
     return NextResponse.json({ message: "Internal server error" }, { status: 500 })

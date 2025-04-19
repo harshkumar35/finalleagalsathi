@@ -7,6 +7,7 @@ import { Footer } from "@/components/footer"
 import { ThemeProvider } from "@/components/theme-provider"
 import { AnimatedBackground } from "@/components/background/animated-background"
 import { LiveChat } from "@/components/live-chat"
+import { AuthProvider } from "@/lib/auth/auth-context"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -25,13 +26,15 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="light">
-          <div className="flex flex-col min-h-screen bg-white">
-            <AnimatedBackground />
-            <AnimatedNavbar />
-            <main className="flex-grow pt-16">{children}</main>
-            <Footer />
-            <LiveChat />
-          </div>
+          <AuthProvider>
+            <div className="flex flex-col min-h-screen bg-white">
+              <AnimatedBackground />
+              <AnimatedNavbar />
+              <main className="flex-grow pt-16">{children}</main>
+              <Footer />
+              <LiveChat />
+            </div>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

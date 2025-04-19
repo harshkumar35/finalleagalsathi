@@ -22,6 +22,7 @@ const LEGAL_SPECIALIZATIONS = [
   "Labor and Employment",
   "Civil Litigation",
   "Environmental Law",
+  "Constitutional Law",
 ]
 
 enum RegistrationStep {
@@ -386,3 +387,5 @@ export function LawyerRegistrationForm() {
     </>
   )
 }
+
+export default LawyerRegistrationForm
