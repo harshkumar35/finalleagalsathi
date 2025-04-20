@@ -1,95 +1,76 @@
 import { NextResponse } from "next/server"
 import bcrypt from "bcryptjs"
-import { createClient } from "@/lib/supabase/server"
+import { query, tableExists } from "@/lib/db"
+import { SignJWT } from "jose"
 
 export async function POST(request: Request) {
   try {
-    const { fullName, email, password, phone, address, city, state } = await request.json()
+    const { fullName, email, password, role } = await request.json()
 
     // Validate input
-    if (!fullName || !email || !password) {
+    if (!fullName || !email || !password || !role) {
       return NextResponse.json({ message: "Missing required fields" }, { status: 400 })
     }
 
-    // Initialize Supabase client
-    const supabase = createClient()
-
-    // Check if user already exists
-    const { data: existingUser, error: checkError } = await supabase
-      .from("legalsathi_users")
-      .select("id")
-      .eq("email", email)
-      .maybeSingle()
-
-    if (checkError) {
-      console.error("Error checking existing user:", checkError)
-      return NextResponse.json({ message: "Error checking user existence" }, { status: 500 })
+    // Check if the users table exists
+    const usersTableExists = await tableExists("legalsathi_users")
+    if (!usersTableExists) {
+      return NextResponse.json({ message: "Database setup incomplete. Please contact support." }, { status: 500 })
     }
 
-    if (existingUser) {
-      return NextResponse.json({ message: "User with this email already exists" }, { status: 409 })
+    // Check if user already exists
+    try {
+      const existingUser = await query("SELECT * FROM legalsathi_users WHERE email = $1", [email])
+
+      if (existingUser.rows.length > 0) {
+        return NextResponse.json({ message: "User with this email already exists" }, { status: 409 })
+      }
+    } catch (error) {
+      console.error("Error checking existing user:", error)
+      return NextResponse.json({ message: "Error checking user existence" }, { status: 500 })
     }
 
     // Hash password
     const salt = await bcrypt.genSalt(10)
     const hashedPassword = await bcrypt.hash(password, salt)
 
-    // Create user with Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
-          full_name: fullName,
-          role: "client",
-        },
-      },
-    })
+    // Create user
+    const newUser = await query(
+      "INSERT INTO legalsathi_users (email, password, full_name, role) VALUES ($1, $2, $3, $4) RETURNING id, email, full_name, role",
+      [email, hashedPassword, fullName, role],
+    )
 
-    if (authError) {
-      console.error("Auth error:", authError)
-      return NextResponse.json({ message: authError.message }, { status: 500 })
-    }
-
-    if (!authData.user) {
-      return NextResponse.json({ message: "Failed to create user" }, { status: 500 })
-    }
-
-    // Insert user into legalsathi_users table
-    const { error: userError } = await supabase.from("legalsathi_users").insert({
-      id: authData.user.id,
-      email,
-      password: hashedPassword,
-      full_name: fullName,
-      role: "client",
-      is_verified: true,
-      is_active: true,
-    })
-
-    if (userError) {
-      console.error("Error creating user:", userError)
-      return NextResponse.json({ message: "Failed to create user profile" }, { status: 500 })
-    }
+    const user = newUser.rows[0]
 
     // Create client profile
-    const { error: profileError } = await supabase.from("client_profiles").insert({
-      user_id: authData.user.id,
-      phone: phone || null,
-      address: address || null,
-      city: city || null,
-      state: state || null,
+    await query("INSERT INTO client_profiles (user_id) VALUES ($1)", [user.id])
+
+    // Generate JWT token
+    const token = await new SignJWT({
+      id: user.id,
+      email: user.email,
+      role: user.role,
     })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("24h")
+      .sign(new TextEncoder().encode(process.env.JWT_SECRET))
 
-    if (profileError) {
-      console.error("Error creating client profile:", profileError)
-      // We should delete the user if profile creation fails
-      await supabase.from("legalsathi_users").delete().eq("id", authData.user.id)
-      return NextResponse.json({ message: "Failed to create client profile" }, { status: 500 })
-    }
-
-    return NextResponse.json({ message: "User registered successfully", userId: authData.user.id }, { status: 201 })
+    return NextResponse.json(
+      {
+        message: "User registered successfully",
+        user: {
+          id: user.id,
+          email: user.email,
+          fullName: user.full_name,
+          role: user.role,
+        },
+        token,
+      },
+      { status: 201 },
+    )
   } catch (error) {
-    console.error("Error registering user:", error)
+    console.error("Error in signup:", error)
     return NextResponse.json({ message: "Internal server error" }, { status: 500 })
   }
 }

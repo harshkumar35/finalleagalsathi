@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
-import { motion, AnimatePresence } from "framer-motion"
+import { motion } from "framer-motion"
 import { gsap } from "gsap"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import ClientRegistrationForm from "@/components/auth/client-registration-form"
 import LawyerRegistrationForm from "@/components/auth/lawyer-registration-form"
 
@@ -14,17 +14,24 @@ export default function RegisterPage() {
   const [activeTab, setActiveTab] = useState("client")
   const [error, setError] = useState("")
   const router = useRouter()
+  const searchParams = useSearchParams()
 
   const containerRef = useRef<HTMLDivElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const tabsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
+    // Get role from URL if present
+    const role = searchParams.get("role")
+    if (role === "lawyer" || role === "client") {
+      setActiveTab(role)
+    }
+
     // GSAP animations
     const tl = gsap.timeline()
 
     tl.from(titleRef.current, {
-      y: -50,
+      y: -30,
       opacity: 0,
       duration: 0.8,
       ease: "power3.out",
@@ -33,7 +40,7 @@ export default function RegisterPage() {
     tl.from(
       tabsRef.current,
       {
-        y: 50,
+        y: 30,
         opacity: 0,
         duration: 0.8,
         ease: "power3.out",
@@ -41,151 +48,100 @@ export default function RegisterPage() {
       "-=0.4",
     )
 
-    // Create animated background bubbles
+    // Create animated background
     if (containerRef.current) {
-      for (let i = 0; i < 15; i++) {
-        createBubble(containerRef.current)
-      }
+      createAnimatedBackground(containerRef.current)
     }
-  }, [])
+  }, [searchParams])
 
-  const createBubble = (parent: HTMLDivElement) => {
-    const bubble = document.createElement("div")
-    bubble.className = "bubble"
+  const createAnimatedBackground = (container: HTMLDivElement) => {
+    const colors = ["#e6f2ff", "#cce5ff", "#b3d9ff", "#99ccff", "#80bfff"]
 
-    const size = Math.random() * 100 + 50
-    const position = Math.random() * 100
-    const delay = Math.random() * 15
-    const duration = Math.random() * 15 + 10
+    for (let i = 0; i < 20; i++) {
+      const size = Math.random() * 80 + 20
+      const circle = document.createElement("div")
 
-    bubble.style.width = `${size}px`
-    bubble.style.height = `${size}px`
-    bubble.style.left = `${position}%`
-    bubble.style.animationDelay = `${delay}s`
-    bubble.style.animationDuration = `${duration}s`
-    bubble.style.opacity = `${Math.random() * 0.3}`
+      circle.style.position = "absolute"
+      circle.style.width = `${size}px`
+      circle.style.height = `${size}px`
+      circle.style.borderRadius = "50%"
+      circle.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)]
+      circle.style.opacity = (Math.random() * 0.3 + 0.1).toString()
+      circle.style.top = `${Math.random() * 100}%`
+      circle.style.left = `${Math.random() * 100}%`
+      circle.style.filter = "blur(8px)"
+      circle.style.zIndex = "-1"
 
-    parent.appendChild(bubble)
+      container.appendChild(circle)
+
+      // Animate the circle
+      gsap.to(circle, {
+        x: Math.random() * 100 - 50,
+        y: Math.random() * 100 - 50,
+        duration: Math.random() * 20 + 10,
+        repeat: -1,
+        yoyo: true,
+        ease: "sine.inOut",
+      })
+    }
   }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden" ref={containerRef}>
-      {/* Animated background */}
-      <style jsx global>{`
-        .bubble {
-          position: absolute;
-          border-radius: 50%;
-          background: linear-gradient(to right, rgba(139, 92, 246, 0.1), rgba(59, 130, 246, 0.1));
-          bottom: -100px;
-          animation: rise linear infinite;
-          z-index: -1;
-        }
-
-        @keyframes rise {
-          0% {
-            transform: translateY(0) rotate(0deg);
-            opacity: 0;
-          }
-          50% {
-            opacity: 0.3;
-          }
-          100% {
-            transform: translateY(-100vh) rotate(360deg);
-            opacity: 0;
-          }
-        }
-      `}</style>
-
       <div className="w-full max-w-4xl z-10">
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="text-center mb-8"
-        >
+        <div className="text-center mb-6">
           <h1
             ref={titleRef}
-            className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-500 bg-clip-text text-transparent"
+            className="text-3xl font-bold bg-gradient-to-r from-blue-700 to-blue-500 bg-clip-text text-transparent"
           >
             Join LegalSathi
           </h1>
           <p className="mt-2 text-gray-600">Create an account to get started with our legal services</p>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="backdrop-blur-lg bg-white/30 rounded-2xl shadow-xl border border-white/20 p-8"
-        >
-          <AnimatePresence mode="wait">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+          <div className="bg-white/80 backdrop-blur-md rounded-xl shadow-xl border border-blue-100 p-8">
             {error && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="mb-6 p-4 rounded-lg bg-red-50/80 text-red-800 border border-red-200/50"
-              >
+              <Alert className="mb-6 bg-red-50 text-red-800 border-red-200">
                 <AlertDescription>{error}</AlertDescription>
-              </motion.div>
+              </Alert>
             )}
-          </AnimatePresence>
 
-          <div ref={tabsRef}>
-            <Tabs defaultValue="client" value={activeTab} onValueChange={setActiveTab} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 mb-8 bg-white/50 p-1 rounded-lg">
-                <TabsTrigger
-                  value="client"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-blue-500 data-[state=active]:text-white rounded-md py-2"
-                >
-                  I Need Legal Help
-                </TabsTrigger>
-                <TabsTrigger
-                  value="lawyer"
-                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-blue-500 data-[state=active]:text-white rounded-md py-2"
-                >
-                  I'm a Lawyer
-                </TabsTrigger>
-              </TabsList>
-
-              <AnimatePresence mode="wait">
-                <TabsContent value="client" className="mt-6">
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: 20 }}
-                    transition={{ duration: 0.3 }}
+            <div ref={tabsRef}>
+              <Tabs defaultValue={activeTab} value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-8 bg-blue-50 p-1 rounded-lg">
+                  <TabsTrigger
+                    value="client"
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-500 data-[state=active]:text-white rounded-md py-2"
                   >
-                    <ClientRegistrationForm setError={setError} />
-                  </motion.div>
+                    I Need Legal Help
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="lawyer"
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-blue-500 data-[state=active]:text-white rounded-md py-2"
+                  >
+                    I'm a Lawyer
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="client" className="mt-6">
+                  <ClientRegistrationForm setError={setError} />
                 </TabsContent>
 
                 <TabsContent value="lawyer" className="mt-6">
-                  <motion.div
-                    initial={{ opacity: 0, x: 20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    exit={{ opacity: 0, x: -20 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <LawyerRegistrationForm setError={setError} />
-                  </motion.div>
+                  <LawyerRegistrationForm setError={setError} />
                 </TabsContent>
-              </AnimatePresence>
-            </Tabs>
+              </Tabs>
 
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.6 }}
-              className="mt-6 text-center"
-            >
-              <p className="text-gray-700">
-                Already have an account?{" "}
-                <Link href="/login" className="text-purple-600 hover:text-purple-800 font-medium">
-                  Login
-                </Link>
-              </p>
-            </motion.div>
+              <div className="mt-6 text-center">
+                <p className="text-gray-700">
+                  Already have an account?{" "}
+                  <Link href="/login" className="text-blue-600 hover:text-blue-800 font-medium">
+                    Login
+                  </Link>
+                </p>
+              </div>
+            </div>
           </div>
         </motion.div>
       </div>

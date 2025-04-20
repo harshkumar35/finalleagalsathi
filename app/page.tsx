@@ -167,9 +167,9 @@ export default function Home() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      {/* Hero Section */}
-      <section ref={heroRef} className="relative bg-white text-gray-800 pt-20">
-        <div className="container mx-auto px-4 py-16 md:py-24">
+      {/* Hero Section - Removed the pt-20 to fix the gap */}
+      <section ref={heroRef} className="relative bg-gradient-to-b from-white to-sky-50 text-gray-800">
+        <div className="container mx-auto px-4 py-12 md:py-16">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
             <div className="max-w-2xl">
               <h1 className="text-4xl md:text-6xl font-bold mb-6">
@@ -193,13 +193,16 @@ export default function Home() {
               </div>
             </div>
             <div className="hidden lg:block">
-              <Image
-                src="/placeholder.svg?height=400&width=500"
-                alt="Legal professionals"
-                width={500}
-                height={400}
-                className="rounded-lg shadow-lg"
-              />
+              <div className="relative rounded-lg shadow-lg overflow-hidden bg-white p-2">
+                <Image
+                  src="/placeholder.svg?height=400&width=500"
+                  alt="Legal professionals"
+                  width={500}
+                  height={400}
+                  className="rounded-lg"
+                />
+                <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/20 to-transparent rounded-lg"></div>
+              </div>
             </div>
           </div>
         </div>
@@ -255,13 +258,16 @@ export default function Home() {
 
           <div className="grid md:grid-cols-2 gap-12 items-center about-content">
             <div>
-              <Image
-                src="/placeholder.svg?height=400&width=500"
-                alt="Founder"
-                width={500}
-                height={400}
-                className="rounded-lg shadow-lg"
-              />
+              <div className="relative rounded-lg shadow-lg overflow-hidden bg-white p-2">
+                <Image
+                  src="/placeholder.svg?height=400&width=500"
+                  alt="Founder"
+                  width={500}
+                  height={400}
+                  className="rounded-lg"
+                />
+                <div className="absolute inset-0 bg-gradient-to-tr from-blue-500/20 to-transparent rounded-lg"></div>
+              </div>
             </div>
             <div>
               <h3 className="text-2xl font-bold mb-4">Our Story</h3>

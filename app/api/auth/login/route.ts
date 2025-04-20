@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
 import bcrypt from "bcryptjs"
-import { createClient } from "@/lib/supabase/server"
+import { query, tableExists } from "@/lib/db"
+import { SignJWT } from "jose"
 
 export async function POST(request: Request) {
   try {
@@ -12,66 +12,50 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Email and password are required" }, { status: 400 })
     }
 
-    // Initialize Supabase client
-    const supabase = createClient()
+    // Check if the users table exists
+    const usersTableExists = await tableExists("legalsathi_users")
+    if (!usersTableExists) {
+      return NextResponse.json({ message: "Database setup incomplete. Please contact support." }, { status: 500 })
+    }
 
-    // Get user by email
-    const { data: userData, error: userError } = await supabase
-      .from("legalsathi_users")
-      .select("*")
-      .eq("email", email)
-      .single()
+    // Find user by email
+    const result = await query("SELECT * FROM legalsathi_users WHERE email = $1", [email])
 
-    if (userError) {
-      console.error("Error fetching user:", userError)
+    if (result.rows.length === 0) {
       return NextResponse.json({ message: "Invalid credentials" }, { status: 401 })
     }
 
-    if (!userData) {
-      return NextResponse.json({ message: "Invalid credentials" }, { status: 401 })
-    }
+    const user = result.rows[0]
 
     // Verify password
-    const isMatch = await bcrypt.compare(password, userData.password)
-    if (!isMatch) {
+    const isPasswordValid = await bcrypt.compare(password, user.password)
+    if (!isPasswordValid) {
       return NextResponse.json({ message: "Invalid credentials" }, { status: 401 })
     }
 
-    // Create sanitized user object (without password)
-    const sanitizedUser = {
-      id: userData.id,
-      fullName: userData.full_name,
-      email: userData.email,
-      role: userData.role,
-    }
-
-    // Set session cookie
-    const { data: sessionData, error: sessionError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
+    // Generate JWT token
+    const token = await new SignJWT({
+      id: user.id,
+      email: user.email,
+      role: user.role,
     })
-
-    if (sessionError) {
-      console.error("Session error:", sessionError)
-      return NextResponse.json({ message: "Authentication failed" }, { status: 500 })
-    }
-
-    // Set cookie with session token
-    cookies().set({
-      name: "supabase-auth-token",
-      value: sessionData.session?.access_token || "",
-      httpOnly: true,
-      path: "/",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24, // 1 day
-    })
+      .setProtectedHeader({ alg: "HS256" })
+      .setIssuedAt()
+      .setExpirationTime("24h")
+      .sign(new TextEncoder().encode(process.env.JWT_SECRET))
 
     return NextResponse.json({
       message: "Login successful",
-      user: sanitizedUser,
+      user: {
+        id: user.id,
+        email: user.email,
+        fullName: user.full_name,
+        role: user.role,
+      },
+      token,
     })
   } catch (error) {
-    console.error("Error logging in:", error)
+    console.error("Error in login:", error)
     return NextResponse.json({ message: "Internal server error" }, { status: 500 })
   }
 }

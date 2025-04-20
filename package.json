@@ -60,6 +60,7 @@
     "zod": "^3.24.1",
     "@emotion/is-prop-valid": "latest",
     "@supabase/supabase-js": "latest",
+    "pg-native": "latest",
     "framer-motion": "latest",
     "gsap": "latest",
     "@supabase/ssr": "latest",
@@ -72,7 +73,8 @@
     "html2canvas": "latest",
     "react-tsparticles": "latest",
     "tsparticles": "latest",
-    "tsparticles-engine": "latest"
+    "tsparticles-engine": "latest",
+    "pg": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

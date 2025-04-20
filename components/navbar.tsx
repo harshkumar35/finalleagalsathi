@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
@@ -9,6 +9,23 @@ import { AnimatedButton } from "@/components/ui/animated-button"
 
 export function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const offset = window.scrollY
+      if (offset > 50) {
+        setScrolled(true)
+      } else {
+        setScrolled(false)
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll)
+    return () => {
+      window.removeEventListener("scroll", handleScroll)
+    }
+  }, [])
 
   const menuVariants = {
     hidden: { opacity: 0, height: 0 },
@@ -35,7 +52,11 @@ export function Navbar() {
   }
 
   return (
-    <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <header
+      className={`${
+        scrolled ? "bg-white/90 backdrop-blur-md shadow-md" : "bg-white"
+      } border-b border-slate-200 sticky top-0 z-50 transition-all duration-300`}
+    >
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -75,12 +96,14 @@ export function Navbar() {
             transition={{ duration: 0.5 }}
           >
             <Link href="/login">
-              <Button variant="ghost" className="text-slate-600">
+              <Button variant="ghost" className="text-slate-600 hover:text-blue-600 hover:bg-blue-50">
                 Log In
               </Button>
             </Link>
             <Link href="/register">
-              <AnimatedButton className="bg-blue-500 hover:bg-blue-600">Sign Up</AnimatedButton>
+              <AnimatedButton className="bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600">
+                Sign Up
+              </AnimatedButton>
             </Link>
           </motion.div>
 
@@ -150,7 +173,9 @@ export function Navbar() {
                   </Button>
                 </Link>
                 <Link href="/register">
-                  <Button className="w-full bg-blue-500 hover:bg-blue-600">Sign Up</Button>
+                  <Button className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600">
+                    Sign Up
+                  </Button>
                 </Link>
               </motion.div>
             </div>

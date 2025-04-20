@@ -208,7 +208,7 @@ const ClientRegistrationForm = ({ setError }: ClientRegistrationFormProps) => {
           <motion.div variants={itemVariants}>
             <Button
               type="submit"
-              className="w-full bg-gradient-to-r from-purple-600 to-blue-500 hover:from-purple-700 hover:to-blue-600 text-white py-2 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+              className="w-full bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-700 hover:to-blue-600 text-white py-2 rounded-lg transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg"
               disabled={isLoading}
             >
               {isLoading ? (
