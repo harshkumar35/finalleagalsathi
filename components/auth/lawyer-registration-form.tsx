@@ -75,34 +75,67 @@ const LawyerRegistrationForm = ({ setError }: LawyerRegistrationFormProps) => {
     setError("")
 
     try {
-      const response = await fetch("/api/auth/signup-lawyer", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          fullName: data.fullName,
-          email: data.email,
-          barCouncilId: data.barCouncilId,
-          specialization: data.specialization,
-          yearsOfExperience: data.yearsOfExperience,
-          password: data.password,
-          role: "lawyer",
-        }),
-      })
-
-      const responseData = await response.json()
-
-      if (!response.ok) {
-        throw new Error(responseData.message || "Registration failed")
+      // First, test if the API is working
+      const testResponse = await fetch("/api/test")
+      if (!testResponse.ok) {
+        throw new Error("API test failed. Server might be down.")
       }
 
-      // Redirect to login page
-      router.push("/login?registered=true")
+      // Prepare the registration data
+      const registrationData = {
+        fullName: data.fullName,
+        email: data.email,
+        barCouncilId: data.barCouncilId,
+        specialization: data.specialization,
+        yearsOfExperience: data.yearsOfExperience,
+        password: data.password,
+        role: "lawyer",
+      }
+
+      // Use XMLHttpRequest instead of fetch for better error handling
+      const xhr = new XMLHttpRequest()
+      xhr.open("POST", "/api/auth/signup-lawyer", true)
+      xhr.setRequestHeader("Content-Type", "application/json")
+
+      xhr.onload = () => {
+        setIsLoading(false)
+
+        if (xhr.status >= 200 && xhr.status < 300) {
+          // Success
+          try {
+            const response = JSON.parse(xhr.responseText)
+            console.log("Registration successful:", response)
+            router.push("/login?registered=true")
+          } catch (e) {
+            console.error("Error parsing success response:", e)
+            setError("Registration successful, but there was an error processing the response.")
+            router.push("/login?registered=true")
+          }
+        } else {
+          // Error
+          try {
+            const errorResponse = JSON.parse(xhr.responseText)
+            setError(errorResponse.message || "Registration failed")
+          } catch (e) {
+            console.error("Error parsing error response:", e)
+            console.log("Raw response:", xhr.responseText)
+            setError("Registration failed: " + (xhr.responseText.substring(0, 100) || "Unknown error"))
+          }
+        }
+      }
+
+      xhr.onerror = () => {
+        setIsLoading(false)
+        console.error("Network error during registration")
+        setError("Network error. Please check your connection and try again.")
+      }
+
+      // Send the request
+      xhr.send(JSON.stringify(registrationData))
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred during registration")
-    } finally {
       setIsLoading(false)
+      console.error("Registration error:", err)
+      setError(err instanceof Error ? err.message : "An error occurred during registration")
     }
   }
 

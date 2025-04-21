@@ -1,9 +1,16 @@
 import { Pool } from "pg"
 
 // Create a PostgreSQL connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-})
+let pool: Pool
+
+try {
+  pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+  })
+} catch (error) {
+  console.error("Failed to create database pool:", error)
+  throw error
+}
 
 // Helper function to execute SQL queries
 export async function query(text: string, params?: any[]) {
